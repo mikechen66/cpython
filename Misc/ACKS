@@ -55,8 +55,10 @@ Juancarlo Añez
 Chris Angelico
 Jérémy Anger
 Jon Anglin
+Michele Angrisano
 Ankur Ankan
 Heidi Annexstad
+David Antonini
 Ramchandra Apte
 Éric Araujo
 Alexandru Ardelean
@@ -141,12 +143,14 @@ Michel Van den Bergh
 Julian Berman
 Brice Berna
 Olivier Bernard
+Maxwell Bernstein
 Eric Beser
 Steven Bethard
 Stephen Bevan
 Ron Bickers
 Natalia B. Bidart
 Adrian von Bidder
+Olexa Bilaniuk
 David Binger
 Dominic Binks
 Philippe Biondi
@@ -157,6 +161,7 @@ Roy Bixler
 Daniel Black
 Jonathan Black
 Renaud Blanch
+Justin Blanchard
 Mike Bland
 Martin Bless
 Pablo Bleyer
@@ -240,6 +245,7 @@ Zach Byrne
 Vedran Čačić
 Nicolas Cadou
 Jp Calderone
+Ben Caller
 Arnaud Calmettes
 Daniel Calvelo
 Tony Campbell
@@ -255,7 +261,7 @@ Donn Cave
 Charles Cazabon
 Jesús Cea Avión
 Per Cederqvist
-Matej Cepl
+Matěj Cepl
 Carl Cerecke
 Octavian Cerna
 Michael Cetrulo
@@ -478,6 +484,7 @@ Florian Festi
 John Feuerstein
 Carl Feynman
 Vincent Fiack
+Niklas Fiekas
 Anastasia Filatova
 Tomer Filiba
 Segev Finer
@@ -811,6 +818,7 @@ Lawrence Kesteloot
 Garvit Khatri
 Vivek Khera
 Dhiru Kholia
+Artem Khramov
 Akshit Khurana
 Sanyam Khurana
 Mads Kiilerich
@@ -943,11 +951,13 @@ Alain Leufroy
 Mark Levinson
 Mark Levitt
 Ivan Levkivskyi
+Ben Lewis
 William Lewis
 Akira Li
 Robert Li
 Xuanji Li
 Zekun Li
+Zheao Li
 Robert van Liere
 Ross Light
 Shawn Ligocki
@@ -1087,11 +1097,13 @@ Tim Mitchell
 Zubin Mithra
 Florian Mladitsch
 Doug Moen
+Paul Monson
 The Dragon De Monsyne
 Bastien Montagne
 Skip Montanaro
 Peter Moody
 Alan D. Moore
+Nicolai Moore
 Paul Moore
 Ross Moore
 Ben Morgan
@@ -1299,6 +1311,7 @@ Burton Radons
 Abhilash Raj
 Shorya Raj
 Dhushyanth Ramasamy
+Ashwin Ramaswami
 Jeff Ramnani
 Bayard Randel
 Varpu Rantala
@@ -1466,6 +1479,7 @@ Dmitry Shachnev
 Anish Shah
 Daniel Shahaf
 Hui Shang
+Geoff Shannon
 Mark Shannon
 Ha Shao
 Richard Shapiro
@@ -1503,6 +1517,7 @@ Ng Pheng Siong
 Yann Sionneau
 George Sipe
 J. Sipprell
+Ngalim Siregar
 Kragen Sitaker
 Kaartic Sivaraam
 Ville Skyttä
@@ -1576,6 +1591,7 @@ Kalle Svensson
 Andrew Svetlov
 Paul Swartz
 Al Sweigart
+Sviatoslav Sydorenko
 Thenault Sylvain
 Péter Szabó
 John Szakmeister
@@ -1664,6 +1680,7 @@ Michael Urman
 Hector Urtubia
 Lukas Vacek
 Ville Vainio
+Yann Vaginay
 Andi Vajda
 Case Van Horsen
 John Mark Vandenberg
@@ -1818,10 +1835,12 @@ Nickolai Zeldovich
 Yuxiao Zeng
 Uwe Zessin
 Cheng Zhang
+George Zhang
 Kai Zhu
 Tarek Ziadé
 Jelle Zijlstra
 Gennadiy Zlobin
 Doug Zongker
 Peter Åstrand
-Zheao Li
+
+(Entries should be added in rough alphabetical order by last names)

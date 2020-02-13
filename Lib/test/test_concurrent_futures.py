@@ -84,8 +84,7 @@ class MyObject(object):
 
 
 class EventfulGCObj():
-    def __init__(self, ctx):
-        mgr = get_context(ctx).Manager()
+    def __init__(self, mgr):
         self.event = mgr.Event()
 
     def __del__(self):
@@ -754,6 +753,13 @@ class ThreadPoolExecutorTest(ThreadPoolMixin, ExecutorTest, BaseTestCase):
 
 
 class ProcessPoolExecutorTest(ExecutorTest):
+
+    @unittest.skipUnless(sys.platform=='win32', 'Windows-only process limit')
+    def test_max_workers_too_large(self):
+        with self.assertRaisesRegex(ValueError,
+                                    "max_workers must be <= 61"):
+            futures.ProcessPoolExecutor(max_workers=62)
+
     def test_killed_child(self):
         # When a child process is abruptly terminated, the whole pool gets
         # "broken".
@@ -811,11 +817,20 @@ class ProcessPoolExecutorTest(ExecutorTest):
     def test_ressources_gced_in_workers(self):
         # Ensure that argument for a job are correctly gc-ed after the job
         # is finished
-        obj = EventfulGCObj(self.ctx)
+        mgr = get_context(self.ctx).Manager()
+        obj = EventfulGCObj(mgr)
         future = self.executor.submit(id, obj)
         future.result()
 
         self.assertTrue(obj.event.wait(timeout=1))
+
+        # explicitly destroy the object to ensure that EventfulGCObj.__del__()
+        # is called while manager is still running.
+        obj = None
+        test.support.gc_collect()
+
+        mgr.shutdown()
+        mgr.join()
 
 
 create_executor_tests(ProcessPoolExecutorTest,
@@ -1078,6 +1093,22 @@ class FutureTests(BaseTestCase):
         self.assertTrue(f.cancel())
         f.add_done_callback(fn)
         self.assertTrue(was_cancelled)
+
+    def test_done_callback_raises_already_succeeded(self):
+        with test.support.captured_stderr() as stderr:
+            def raising_fn(callback_future):
+                raise Exception('doh!')
+
+            f = Future()
+
+            # Set the result first to simulate a future that runs instantly,
+            # effectively allowing the callback to be run immediately.
+            f.set_result(5)
+            f.add_done_callback(raising_fn)
+
+            self.assertIn('exception calling callback for', stderr.getvalue())
+            self.assertIn('doh!', stderr.getvalue())
+
 
     def test_repr(self):
         self.assertRegex(repr(PENDING_FUTURE),

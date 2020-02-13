@@ -36,6 +36,7 @@ __all__ = [
     'Any',
     'Callable',
     'ClassVar',
+    'ForwardRef',
     'Generic',
     'Optional',
     'Tuple',
@@ -79,11 +80,13 @@ __all__ = [
     'SupportsRound',
 
     # Concrete collection types.
+    'ChainMap',
     'Counter',
     'Deque',
     'Dict',
     'DefaultDict',
     'List',
+    'OrderedDict',
     'Set',
     'FrozenSet',
     'NamedTuple',  # Not really a type.
@@ -978,7 +981,11 @@ def get_type_hints(obj, globalns=None, localns=None):
         if isinstance(obj, types.ModuleType):
             globalns = obj.__dict__
         else:
-            globalns = getattr(obj, '__globals__', {})
+            nsobj = obj
+            # Find globalns for the unwrapped object.
+            while hasattr(nsobj, '__wrapped__'):
+                nsobj = nsobj.__wrapped__
+            globalns = getattr(nsobj, '__globals__', {})
         if localns is None:
             localns = globalns
     elif localns is None:
@@ -1274,6 +1281,7 @@ Type.__doc__ = \
 
 
 class SupportsInt(_Protocol):
+    """An ABC with one abstract method __int__."""
     __slots__ = ()
 
     @abstractmethod
@@ -1282,6 +1290,7 @@ class SupportsInt(_Protocol):
 
 
 class SupportsFloat(_Protocol):
+    """An ABC with one abstract method __float__."""
     __slots__ = ()
 
     @abstractmethod
@@ -1290,6 +1299,7 @@ class SupportsFloat(_Protocol):
 
 
 class SupportsComplex(_Protocol):
+    """An ABC with one abstract method __complex__."""
     __slots__ = ()
 
     @abstractmethod
@@ -1298,6 +1308,7 @@ class SupportsComplex(_Protocol):
 
 
 class SupportsBytes(_Protocol):
+    """An ABC with one abstract method __bytes__."""
     __slots__ = ()
 
     @abstractmethod
@@ -1306,6 +1317,7 @@ class SupportsBytes(_Protocol):
 
 
 class SupportsAbs(_Protocol[T_co]):
+    """An ABC with one abstract method __abs__ that is covariant in its return type."""
     __slots__ = ()
 
     @abstractmethod
@@ -1314,6 +1326,7 @@ class SupportsAbs(_Protocol[T_co]):
 
 
 class SupportsRound(_Protocol[T_co]):
+    """An ABC with one abstract method __round__ that is covariant in its return type."""
     __slots__ = ()
 
     @abstractmethod
@@ -1340,7 +1353,7 @@ _prohibited = ('__new__', '__init__', '__slots__', '__getnewargs__',
                '_fields', '_field_defaults', '_field_types',
                '_make', '_replace', '_asdict', '_source')
 
-_special = ('__module__', '__name__', '__qualname__', '__annotations__')
+_special = ('__module__', '__name__', '__annotations__')
 
 
 class NamedTupleMeta(type):
@@ -1402,13 +1415,36 @@ class NamedTuple(metaclass=NamedTupleMeta):
     """
     _root = True
 
-    def __new__(self, typename, fields=None, **kwargs):
+    def __new__(*args, **kwargs):
+        if not args:
+            raise TypeError('NamedTuple.__new__(): not enough arguments')
+        cls, *args = args  # allow the "cls" keyword be passed
+        if args:
+            typename, *args = args # allow the "typename" keyword be passed
+        elif 'typename' in kwargs:
+            typename = kwargs.pop('typename')
+        else:
+            raise TypeError("NamedTuple.__new__() missing 1 required positional "
+                            "argument: 'typename'")
+        if args:
+            try:
+                fields, = args # allow the "fields" keyword be passed
+            except ValueError:
+                raise TypeError(f'NamedTuple.__new__() takes from 2 to 3 '
+                                f'positional arguments but {len(args) + 2} '
+                                f'were given') from None
+        elif 'fields' in kwargs and len(kwargs) == 1:
+            fields = kwargs.pop('fields')
+        else:
+            fields = None
+
         if fields is None:
             fields = kwargs.items()
         elif kwargs:
             raise TypeError("Either list of fields or keywords"
                             " can be provided to NamedTuple, not both")
         return _make_nmtuple(typename, fields)
+    __new__.__text_signature__ = '($cls, typename, fields=None, /, **kwargs)'
 
 
 def NewType(name, tp):
@@ -1473,7 +1509,7 @@ class IO(Generic[AnyStr]):
     def close(self) -> None:
         pass
 
-    @abstractmethod
+    @abstractproperty
     def closed(self) -> bool:
         pass
 

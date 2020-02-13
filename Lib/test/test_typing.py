@@ -3,7 +3,7 @@ import collections
 import pickle
 import re
 import sys
-from unittest import TestCase, main, skipUnless, SkipTest, expectedFailure
+from unittest import TestCase, main, skipUnless, SkipTest, skip
 from copy import copy, deepcopy
 
 from typing import Any, NoReturn
@@ -1787,6 +1787,16 @@ except StopIteration as e:
 
 gth = get_type_hints
 
+class ForRefExample:
+    @ann_module.dec
+    def func(self: 'ForRefExample'):
+        pass
+
+    @ann_module.dec
+    @ann_module.dec
+    def nested(self: 'ForRefExample'):
+        pass
+
 
 class GetTypeHintTests(BaseTestCase):
     def test_get_type_hints_from_various_objects(self):
@@ -1804,7 +1814,7 @@ class GetTypeHintTests(BaseTestCase):
         self.assertEqual(gth(ann_module2), {})
         self.assertEqual(gth(ann_module3), {})
 
-    @expectedFailure
+    @skip("known bug")
     def test_get_type_hints_modules_forwardref(self):
         # FIXME: This currently exposes a bug in typing. Cached forward references
         # don't account for the case where there are multiple types of the same
@@ -1884,6 +1894,11 @@ class GetTypeHintTests(BaseTestCase):
                          {'z': ClassVar[CSub], 'y': int, 'b': int,
                           'x': ClassVar[Optional[B]]})
         self.assertEqual(gth(G), {'lst': ClassVar[List[T]]})
+
+    def test_get_type_hints_wrapped_decoratored_func(self):
+        expects = {'self': ForRefExample}
+        self.assertEqual(gth(ForRefExample.func), expects)
+        self.assertEqual(gth(ForRefExample.nested), expects)
 
 
 class CollectionsAbcTests(BaseTestCase):
@@ -2441,6 +2456,9 @@ class NewTypeTests(BaseTestCase):
 
 
 class NamedTupleTests(BaseTestCase):
+    class NestedEmployee(NamedTuple):
+        name: str
+        cool: int
 
     def test_basics(self):
         Emp = NamedTuple('Emp', [('name', str), ('id', int)])
@@ -2536,14 +2554,53 @@ class XMethBad2(NamedTuple):
         with self.assertRaises(TypeError):
             NamedTuple('Name', x=1, y='a')
 
-    def test_pickle(self):
+    def test_namedtuple_special_keyword_names(self):
+        NT = NamedTuple("NT", cls=type, self=object, typename=str, fields=list)
+        self.assertEqual(NT.__name__, 'NT')
+        self.assertEqual(NT._fields, ('cls', 'self', 'typename', 'fields'))
+        a = NT(cls=str, self=42, typename='foo', fields=[('bar', tuple)])
+        self.assertEqual(a.cls, str)
+        self.assertEqual(a.self, 42)
+        self.assertEqual(a.typename, 'foo')
+        self.assertEqual(a.fields, [('bar', tuple)])
+
+    def test_namedtuple_errors(self):
+        with self.assertRaises(TypeError):
+            NamedTuple.__new__()
+        with self.assertRaises(TypeError):
+            NamedTuple()
+        with self.assertRaises(TypeError):
+            NamedTuple('Emp', [('name', str)], None)
+        with self.assertRaises(ValueError):
+            NamedTuple('Emp', [('_name', str)])
+
+        Emp = NamedTuple(typename='Emp', name=str, id=int)
+        self.assertEqual(Emp.__name__, 'Emp')
+        self.assertEqual(Emp._fields, ('name', 'id'))
+
+        Emp = NamedTuple('Emp', fields=[('name', str), ('id', int)])
+        self.assertEqual(Emp.__name__, 'Emp')
+        self.assertEqual(Emp._fields, ('name', 'id'))
+
+    def test_copy_and_pickle(self):
         global Emp  # pickle wants to reference the class by name
-        Emp = NamedTuple('Emp', [('name', str), ('id', int)])
-        jane = Emp('jane', 37)
-        for proto in range(pickle.HIGHEST_PROTOCOL + 1):
-            z = pickle.dumps(jane, proto)
-            jane2 = pickle.loads(z)
-            self.assertEqual(jane2, jane)
+        Emp = NamedTuple('Emp', [('name', str), ('cool', int)])
+        for cls in Emp, CoolEmployee, self.NestedEmployee:
+            with self.subTest(cls=cls):
+                jane = cls('jane', 37)
+                for proto in range(pickle.HIGHEST_PROTOCOL + 1):
+                    z = pickle.dumps(jane, proto)
+                    jane2 = pickle.loads(z)
+                    self.assertEqual(jane2, jane)
+                    self.assertIsInstance(jane2, cls)
+
+                jane2 = copy(jane)
+                self.assertEqual(jane2, jane)
+                self.assertIsInstance(jane2, cls)
+
+                jane2 = deepcopy(jane)
+                self.assertEqual(jane2, jane)
+                self.assertIsInstance(jane2, cls)
 
 
 class IOTests(BaseTestCase):
@@ -2664,6 +2721,30 @@ class AllTests(BaseTestCase):
         # Check previously missing classes.
         self.assertIn('SupportsBytes', a)
         self.assertIn('SupportsComplex', a)
+
+    def test_all_exported_names(self):
+        import typing
+
+        actual_all = set(typing.__all__)
+        computed_all = {
+            k for k, v in vars(typing).items()
+            # explicitly exported, not a thing with __module__
+            if k in actual_all or (
+                # avoid private names
+                not k.startswith('_') and
+                # avoid things in the io / re typing submodules
+                k not in typing.io.__all__ and
+                k not in typing.re.__all__ and
+                k not in {'io', 're'} and
+                # there's a few types and metaclasses that aren't exported
+                not k.endswith(('Meta', '_contra', '_co')) and
+                not k.upper() == k and
+                # but export all things that have __module__ == 'typing'
+                getattr(v, '__module__', None) == typing.__name__
+            )
+        }
+        self.assertSetEqual(computed_all, actual_all)
+
 
 
 if __name__ == '__main__':

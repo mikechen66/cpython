@@ -1114,6 +1114,8 @@ _Pickler_New(void)
         Py_DECREF(self);
         return NULL;
     }
+
+    PyObject_GC_Track(self);
     return self;
 }
 
@@ -1491,6 +1493,7 @@ _Unpickler_New(void)
         return NULL;
     }
 
+    PyObject_GC_Track(self);
     return self;
 }
 
@@ -1996,7 +1999,7 @@ save_long(PicklerObject *self, PyObject *obj)
         /* How many bytes do we need?  There are nbits >> 3 full
          * bytes of data, and nbits & 7 leftover bits.  If there
          * are any leftover bits, then we clearly need another
-         * byte.  Wnat's not so obvious is that we *probably*
+         * byte.  What's not so obvious is that we *probably*
          * need another byte even if there aren't any leftovers:
          * the most-significant bit of the most-significant byte
          * acts like a sign bit, and it's usually got a sense
@@ -2334,7 +2337,10 @@ raw_unicode_escape(PyObject *obj)
             *p++ = Py_hexdigits[ch & 15];
         }
         /* Map 16-bit characters, '\\' and '\n' to '\uxxxx' */
-        else if (ch >= 256 || ch == '\\' || ch == '\n') {
+        else if (ch >= 256 ||
+                 ch == '\\' || ch == 0 || ch == '\n' || ch == '\r' ||
+                 ch == 0x1a)
+        {
             /* -1: subtract 1 preallocated byte */
             p = _PyBytesWriter_Prepare(&writer, p, 6-1);
             if (p == NULL)

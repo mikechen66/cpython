@@ -167,22 +167,26 @@ PyInterpreterState_New(void)
     interp->pyexitmodule = NULL;
 
     HEAD_LOCK();
-    interp->next = _PyRuntime.interpreters.head;
-    if (_PyRuntime.interpreters.main == NULL) {
-        _PyRuntime.interpreters.main = interp;
-    }
-    _PyRuntime.interpreters.head = interp;
     if (_PyRuntime.interpreters.next_id < 0) {
         /* overflow or Py_Initialize() not called! */
         PyErr_SetString(PyExc_RuntimeError,
                         "failed to get an interpreter ID");
-        /* XXX deallocate! */
+        PyMem_RawFree(interp);
         interp = NULL;
     } else {
         interp->id = _PyRuntime.interpreters.next_id;
         _PyRuntime.interpreters.next_id += 1;
+        interp->next = _PyRuntime.interpreters.head;
+        if (_PyRuntime.interpreters.main == NULL) {
+            _PyRuntime.interpreters.main = interp;
+        }
+        _PyRuntime.interpreters.head = interp;
     }
     HEAD_UNLOCK();
+
+    if (interp == NULL) {
+        return NULL;
+    }
 
     interp->tstate_next_unique_id = 0;
 
@@ -480,7 +484,7 @@ _PyState_AddModule(PyObject* module, struct PyModuleDef* def)
         if (!state->modules_by_index)
             return -1;
     }
-    while(PyList_GET_SIZE(state->modules_by_index) <= def->m_base.m_index)
+    while (PyList_GET_SIZE(state->modules_by_index) <= def->m_base.m_index)
         if (PyList_Append(state->modules_by_index, Py_None) < 0)
             return -1;
     Py_INCREF(module);
@@ -498,13 +502,11 @@ PyState_AddModule(PyObject* module, struct PyModuleDef* def)
         return -1;
     }
     index = def->m_base.m_index;
-    if (state->modules_by_index) {
-        if(PyList_GET_SIZE(state->modules_by_index) >= index) {
-            if(module == PyList_GET_ITEM(state->modules_by_index, index)) {
-                Py_FatalError("PyState_AddModule: Module already added!");
-                return -1;
-            }
-        }
+    if (state->modules_by_index &&
+        index < PyList_GET_SIZE(state->modules_by_index) &&
+        module == PyList_GET_ITEM(state->modules_by_index, index)) {
+        Py_FatalError("PyState_AddModule: Module already added!");
+        return -1;
     }
     return _PyState_AddModule(module, def);
 }
