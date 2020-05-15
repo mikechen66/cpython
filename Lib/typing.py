@@ -473,11 +473,13 @@ class ForwardRef(_Final, _root=True):
     def __eq__(self, other):
         if not isinstance(other, ForwardRef):
             return NotImplemented
-        return (self.__forward_arg__ == other.__forward_arg__ and
-                self.__forward_value__ == other.__forward_value__)
+        if self.__forward_evaluated__ and other.__forward_evaluated__:
+            return (self.__forward_arg__ == other.__forward_arg__ and
+                    self.__forward_value__ == other.__forward_value__)
+        return self.__forward_arg__ == other.__forward_arg__
 
     def __hash__(self):
-        return hash((self.__forward_arg__, self.__forward_value__))
+        return hash(self.__forward_arg__)
 
     def __repr__(self):
         return f'ForwardRef({self.__forward_arg__!r})'
@@ -547,7 +549,10 @@ class TypeVar(_Final, _Immutable, _root=True):
             self.__bound__ = _type_check(bound, "Bound must be a type.")
         else:
             self.__bound__ = None
-        def_mod = sys._getframe(1).f_globals['__name__']  # for pickling
+        try:
+            def_mod = sys._getframe(1).f_globals.get('__name__', '__main__')  # for pickling
+        except (AttributeError, ValueError):
+            def_mod = None
         if def_mod != 'typing':
             self.__module__ = def_mod
 
